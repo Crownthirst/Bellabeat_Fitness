@@ -1,0 +1,356 @@
+---
+title: "Bellabeat"
+author: "Adewunmmi Oluwaseun"
+date: '2022-07-09'
+output:
+  html_document: default
+  pdf_document: default
+---
+## BELLABEAT CASE STUDY
+### INTRODUCTION
+### ABOUT THE COMPANY 
+*Urška Sršen and Sando Mur founded Bellabeat, a high-tech company that manufactures health-focused smart products. Sršen used her background as an artist to develop beautifully designed technology that informs and inspires women around the world. Collecting data on activity, sleep, stress, and reproductive health has allowed Bellabeat to empower women with knowledge about their own health and habits. Since it was founded in 2013, Bellabeat has grown rapidly and quickly positioned itself as a tech-driven wellness company for women. By 2016, Bellabeat had opened offices around the world and launched multiple products. Bellabeat products became available through a growing number of online retailers in addition to their own e-commerce channel on their website. The company has invested in traditional advertising media, such as radio, out-of-home billboards, print, and television, but focuses on digital marketing extensively. Bellabeat invests year-round in Google Search, maintaining active Facebook and Instagram pages, and consistently engages consumers on Twitter. Additionally, Bellabeat runs video ads on Youtube and display ads on the Google Display Network to support campaigns around key marketing dates. Sršen knows that an analysis of Bellabeat’s available consumer data would reveal more opportunities for growth. She has asked the marketing analytics team to focus on a Bellabeat product and analyze smart device usage data in order to gain insight into how people are already using their smart devices. Then, using this information, she would like high-level recommendations for how these trends can inform Bellabeat marketing strategy.*
+
+### BUSINESS TASK
+Sršen asked me as an analyst to:
+
+- Help analyze smart device usage data gotten from public dataset [Fitbit Fitness Tracker Data]((https://www.kaggle.com/datasets/arashnic/fitbit)) available on Kaggle to gain insight into how consumers use non-Bellabeat smart devices to help guide marketing strategy for the company. 
+- Select one Bellabeat product to apply insights gotten to and present findings thereafter.
+
+### STAKEHOLDERS
+- Urška Sršen- Bellabeat’s cofounder and Chief Creative Officer
+- Sando Mur- Mathematician and Bellabeat’s cofounder; key member of the Bellabeat executive team 
+- Bellabeat marketing analytics team: A team of data analysts responsible for collecting, analyzing, and reporting data that helps guide Bellabeat’s marketing strategy.
+
+### BELLABEAT PRODUCTS
+- **Bellabeat app:** The Bellabeat app provides users with health data related to their activity, sleep, stress, menstrual cycle, and mindfulness habits. This data can help users better understand their current habits and make healthy decisions. The Bellabeat app connects to their line of smart wellness products. 
+- **Leaf:** Bellabeat’s classic wellness tracker can be worn as a bracelet, necklace, or clip. The Leaf tracker connects to the Bellabeat app to track activity, sleep, and stress. 
+- **Time:** This wellness watch combines the timeless look of a classic timepiece with smart technology to track user activity, sleep, and stress. The Time watch connects to the Bellabeat app to provide you with insights into your daily wellness. 
+- **Spring:** This is a water bottle that tracks daily water intake using smart technology to ensure that you are appropriately hydrated throughout the day. The Spring bottle connects to the Bellabeat app to track your hydration levels. 
+- **Bellabeat membership:** Bellabeat also offers a subscription-based membership program for users. Membership gives users 24/7 access to fully personalized guidance on nutrition, activity, sleep, health and beauty, and mindfulness based on their lifestyle and goals.
+
+### ASK PHASE
+*Here I’m looking to jot down potential questions I’m looking to answer with the data available to me.*
+- What are some trends and patterns I can detect in the smart device usage? 
+- How could these trends apply to Bellabeat customers? 
+- How could these trends help influence Bellabeat marketing strategy?
+Going forward these questions above would serve as my guide, and I will be walking you through my thought process and step-by-step analysis towards answering those questions.
+
+### PREPARE PHASE
+*Here I will be looking to collect our data, organize, sort, filter and prepare it for analysis.* 
+
+#### LICENSING, PRIVACY, SECURITY AND ACCESSIBILITY
+- The dataset used for this analysis was sourced from (CC0: Public Domain, dataset made available through [Mobius](https://www.kaggle.com/arashnic)), It is open source, open for any and anyone to access, modify, reuse and share.
+- The data is organized in a long format with separate rows representing different days in the span of activity
+- Even though the data is from a reliable source and it is cited, while exploring the dataset I found out there are quite a few limitations to the dataset
+  1.	 it is not current and the one-month time frame (April-May) is not enough time period to track consistent habits amongst consumers.
+  2.	 it is hard to check for sampling bias as there are no demographic information tied to each user id to compare age, sex, location e.t.c
+
+### PROCESS PHASE
+*This is where we get to process our data for analysis*
+
+- I have chosen excel for exploring the dataset as the files i have chosen to answer the business task are all less than 1000 rows. 
+- After which I’d import the data into R for cleaning and analysis
+- While exploring dataset I realized we had 33 unique User ID’s
+- Of the 33 Users the following users failed to completely record their activities in the 30-day span
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+User_Id <- c('2347167796','3372868164','4020332650 and 1927972279','4057192912','8253242879 and 8792009665','1844505072')
+Days_of_Inactivity <- c('13 days','11 days','14 days respectively','26 days (Outlier)','12 days respectively','10 days')
+Inactivity <- data.frame(User_Id, Days_of_Inactivity)
+```
+
+```{r Table of Incativity, echo=FALSE}
+Inactivity
+```
+
+- Other users completed at least 27 days of tracking their activities on the app.
+- After exploring all of the 18 CSV files present in our dataset, I settled for 4 of the files containing data sufficient to tackle our business task. 
+    **FILES CHOSEN**
+  - dailyActivity_merged.csv
+  - dailyIntensities_merged.csv
+  - sleepDay_merged.csv
+  - hourlySteps_merged.csv
+
+    N.B The weightLogInfo_merged.csv would have also been a good pick but it only contained weight info for 8 of the 33 unique ID's found in the dataset, forcing me to drop it.
+
+Loading libraries for data cleaning and analysis......    
+```{r results="markup"}
+library(tidyverse)
+library(readr)
+library(lubridate)
+library(skimr)
+library(psych)
+library(janitor)
+```
+    
+We read in our datasets
+```{r load dataset}
+daily_activity <- read.csv('dailyActivity_merged.csv')
+daily_intensity <- read.csv('dailyIntensities_merged.csv')
+hourly_steps <- read.csv('hourlySteps_merged.csv')
+sleep_day <- read.csv('sleepDay_merged.csv')
+```
+
+After which we preview our datasets to get a general overview 
+```{r preview dataset, paged.print=FALSE}
+head(daily_activity)
+head(daily_intensity)
+head(hourly_steps)
+head(sleep_day)
+```
+
+Check for number of unique Id's
+```{r unique Id}
+n_unique(daily_activity$Id)
+n_unique(daily_intensity$Id)
+n_unique(hourly_steps$Id)
+n_unique(sleep_day$Id)
+```
+
+Check for duplicates
+```{r check for duplicates}
+sum(duplicated(daily_activity))
+sum(duplicated(daily_intensity))
+sum(duplicated(hourly_steps))
+sum(duplicated(sleep_day))
+```
+
+No duplicates found in the first three files but we found 3 duplicates in the sleep_day file, we will proceed to remove duplicates
+```{r remove duplicates}
+sleep_day <- sleep_day %>% 
+  distinct() %>% 
+  drop_na()
+```
+
+Now we confirm the duplicates were truly removed
+```{r confirm removed duplicates}
+sum(duplicated(sleep_day))
+```
+
+We will now filter out days of inactivity, days of inactivity will equal days where the total steps taken equal zero or the sedantary minutes equal 1440, this might be due to different factors maybe the users forgot to track their activities, forgot their device at home, low battery or they just didn't charge their device.
+```{r filter out inactivity}
+daily_activity <-  filter(daily_activity, TotalSteps != 0)
+daily_intensity <- filter(daily_intensity, SedentaryMinutes != 1440)
+```
+
+Having done that, we proceed to inspect the structure of our data and ensure they are in the right format suitable for analysis. 
+```{r check structure}
+str(daily_activity)
+str(daily_intensity)
+str(hourly_steps)
+str(sleep_day)
+```
+
+Happens that all the dates in the dataset are all formatted as character we will correct that by formatting as date
+```{r format as date}
+daily_activity <- daily_activity %>% 
+  mutate(ActivityDate = as_date(ActivityDate, format = '%m/%d/%y'))
+daily_intensity <- daily_intensity %>% 
+  mutate(ActivityDay = as_date(ActivityDay, format = '%m/%d/%y'))
+hourly_steps <- hourly_steps %>% 
+  mutate(ActivityHour = as.POSIXct(ActivityHour,format ="%m/%d/%Y %I:%M:%S %p" , tz=Sys.timezone()))
+sleep_day <- sleep_day %>% 
+  mutate(SleepDay = as.POSIXct(SleepDay,format ="%m/%d/%Y %I:%M:%S %p" , tz=Sys.timezone()))
+```
+
+Lastly we will like to clean and rename our columns for consistency
+```{r clean columns}
+daily_activity <- clean_names(daily_activity) 
+daily_intensity <- clean_names(daily_intensity) 
+hourly_steps <- clean_names(hourly_steps)
+sleep_day <- clean_names(sleep_day)
+```
+
+### ANALYZE PHASE
+*This is the phase where we get to do the analysis*
+
+*We will have to deal with the limitations in the data by classifying the users into demographics according to their level of activity as we have not been provided with any demographic or categorical variable*
+
+We will be settling with the following classifications according to the following article published by [medicinet.com](https://www.medicinenet.com/how_many_steps_a_day_is_considered_active/article.htm) with slight modifications
+
+- **Sedentary:** Less than 5,000 steps daily
+- **Low Active:** About 5,000 to 7,499 steps daily
+- **Somewhat Active:** About 7,500 to 9,999 steps daily
+- **Highly Active:** More than 10,000 steps daily
+
+Now to classify our users we will try to get each users average step by their id.
+```{r average steps}
+daily_average <- daily_activity %>% 
+  group_by(id) %>% 
+  summarise(average_steps = mean(total_steps), average_calories = mean(calories), average_sedentary = mean(sedentary_minutes))
+head(daily_average)
+```
+
+Now to classify user activity by average steps taken, calculate percentage distribution. 
+```{r classify user}
+user_type <- daily_average %>%
+  mutate(user_type = case_when(
+    average_steps < 5000 ~ "sedentary",
+    average_steps >= 5000 & average_steps < 7499 ~ "low active", 
+    average_steps >= 7500 & average_steps < 9999 ~ "somewhat active", 
+    average_steps >= 10000 ~ "Highly active"
+  ))
+percentage_user_type <- user_type %>%
+  group_by(user_type) %>%
+  summarise(total = n()) %>%
+  mutate(totals = sum(total)) %>%
+  group_by(user_type) %>%
+  summarise(total_percent = total / totals) %>%
+  mutate(labels = scales::percent(total_percent))
+```
+
+Then we visualize the user percentage using a pie chart
+```{r User table}
+percentage_user_type %>%
+  ggplot(aes(x="",y=total_percent, fill=user_type)) +
+  geom_bar(stat = "identity", width = 1)+
+  coord_polar("y", start=0)+
+  theme_minimal()+
+  theme(axis.title.x= element_blank(),
+        axis.title.y = element_blank(),
+        panel.border = element_blank(), 
+        panel.grid = element_blank(), 
+        axis.ticks = element_blank(),
+        axis.text.x = element_blank(),
+        plot.title = element_text(hjust = 0.5, color = "#666666")) +
+  scale_fill_manual(values = c("#55DDE0", "#33658A", "#2F4858", "#F6AE2D", "#F26419")) +
+  geom_text(aes(label = labels),
+            position = position_stack(vjust = 0.5))+
+  labs(title="User type distribution")
+```
+
+We understand from our visual that the users are fairly distributed with the "somewhat active" users holding slight edge.
+Based on our visuals, we also understand that at least 51.5% of our users walk the recommended 7500 steps per day.
+
+We will like to understand which day of the week our users are mostly inactive by analyzing the average sedantary minutes 
+```{r}
+#Get Sedantary week day
+weekday_inactivity <- daily_activity %>% 
+  mutate(weekday = weekdays(activity_date))
+
+weekday_inactivity$weekday <- ordered(weekday_inactivity$weekday, levels = c('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'))
+
+weekday_inactivity <- weekday_inactivity %>% 
+  group_by(weekday) %>%
+  summarize (average_sedentary = mean(sedentary_minutes))
+head(weekday_inactivity)
+```
+Visualizing that result on a column chart we have
+```{r}
+weekday_inactivity %>%
+  ggplot() +
+  geom_col(mapping = aes(x=weekday, y = average_sedentary, fill = average_sedentary)) + 
+  labs(title = "Users Inactive days", x="Weekday", y="Sedentary minutes") + 
+  scale_fill_gradient(low = "green", high = "red")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+From this visual we can deduce user inactivity mostly on weekends, no work day and rightly so less activity.
+
+If they are in active on weekends then they should be well rested, let's check that out. First we aggregate our sleep data.
+```{r}
+sleepday_activity <- sleep_day %>% 
+  mutate(weekday = weekdays(sleep_day))
+
+sleepday_activity$weekday <- ordered(sleepday_activity$weekday, levels = c('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'))
+
+sleepday_activity <- sleepday_activity %>% 
+  group_by(weekday) %>%
+  summarize (average_sleep = mean(total_minutes_asleep))
+head(sleepday_activity)
+```
+
+We proceed to visualize our findings
+```{r}
+sleepday_activity %>%
+  ggplot() +
+  geom_col(mapping = aes(x=weekday, y = average_sleep, fill = average_sleep)) + 
+  labs(title = "Users sleep activity", x="Weekday", y="average minute asleep") + 
+  scale_fill_gradient(low = "red", high = "green")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+Sunday comes out on top, it is not suprising that our users are getting to rest fully on weekends.
+
+Moving forward we will like to know what hour of the day our users are mostly active to better understand their behaviour throughtout the day
+```{r hourly steps}
+hourly_steps <- hourly_steps %>%
+  separate(activity_hour, into = c("date", "time"), sep= " ") %>%
+  mutate(date = ymd(date)) 
+
+head(hourly_steps)
+```
+ We will proceed to represent this information on a column chart
+```{r hourly step visual}
+hourly_steps %>%
+  group_by(time) %>%
+  summarize(average_steps = mean(step_total)) %>%
+  ggplot() +
+  geom_col(mapping = aes(x=time, y = average_steps, fill = average_steps)) + 
+  labs(title = "User most active hours", x="", y="") + 
+  scale_fill_gradient(low = "red", high = "green")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+ 
+ We get a normally distributed chart and understandably our users begin their activity around 6am possibly on their way to work and we are met with an increase all through the day with the peak at 6pm the 'closing hours' of the day and then a free fall from there.
+ 
+ I will like to know if there is a correlation between number of steps taken and calories expended, likewise the average number of steps taken and minutes spent in bed/taken to rest.
+ 
+First we generate a correlation matrix
+```{r corr steps and calories}
+daily_average %>% 
+  select(average_steps, average_calories) %>% 
+  cor()
+```
+
+```{r visual steps and calories, message=FALSE}
+ggplot(data = daily_average, aes(x = average_steps, y = average_calories))+
+         geom_point()+
+         xlab('Steps') + ylab('Calories')+
+        ggtitle('Relationship between steps and calories burnt')+
+        geom_smooth(method = lm)
+```
+
+We find a weak positive relationship between average number of steps and calories expended.
+Next we try to get the correlation between sleep and steps taken.
+```{r}
+user_sleep <- sleep_day %>% 
+  group_by(id) %>% 
+  summarise(average_minute_asleep = mean(total_minutes_asleep))
+```
+
+Recall we have just 24 users who recorded their sleep data, which means 9 of our users failed to use their device in bed.  we will proceed to join the sleep data with our daily_average data by Id.
+```{r }
+daily_average <- daily_average %>% 
+  left_join(user_sleep)
+head(daily_average)
+```
+
+We then proceed to test the relationship between steps and minutes asleep
+```{r visual steps vs minute, message=FALSE}
+daily_average %>% 
+  select(average_steps, average_minute_asleep) %>% 
+  drop_na() %>% 
+  cor()
+
+ggplot(data = daily_average, aes(x = average_steps, y = average_minute_asleep))+
+  geom_point()+
+  xlab('Steps') + ylab('Sleep')+
+  ggtitle('Relationship between steps and minutes asleep')+
+  geom_smooth(method = lm)
+```
+
+We get a warning stating 9rows have been removed, i.e 9 instances where sleep data were not present.
+
+No correlation between both variables.
+Meaning this relationships are nothing to hold on to. 
+
+### CONCLUSION (ACT PHASE)
+
+**First i will like to reiterate the limitations of this dataset given the sample size, no demographic data and enumerate possible bias.**
+
+- **BELLA BEAT APP**
+According to [sleep foundation](https://www.sleepfoundation.org/how-sleep-works/how-much-sleep-do-we-really-need#:~:text=National%20Sleep%20Foundation%20guidelines1,to%208%20hours%20per%20night.) humans are recommended an average of 8 hours sleep per day which equates to about 480 minutes per day, our analysis shows users are not getting the recommended sleep time infact with 452 minutes being the highest, I recommend an in app notification pop up design for the *Bellabeat app* to remind users minutes before their bed time to prepare for bed.
+- **BELLA WRISTWATCH**
+We noticed users are not recording sleep data, this could be due to many factors, like low battery before bed-time, watch design(Is the wristwatch heavy or light?) We recommend Bellabeat focuses on long lasting batteries as their selling point, and a rich ultra modern light weight design so users can use their wristwatch even in bed.
